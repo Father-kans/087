@@ -89,7 +89,7 @@ struct CarEvent @0x9b1657f34caf3ad3 {
     startupNoControl @77;
     startupMaster @78;
     startupFuzzyFingerprint @97;
-    startupNoFw @104;
+
     fcw @79;
     steerSaturated @80;
     belowEngageSpeed @84;
@@ -103,11 +103,16 @@ struct CarEvent @0x9b1657f34caf3ad3 {
     processNotRunning @95;
     dashcamMode @96;
     controlsInitializing @98;
-    usbError @99;
-    roadCameraError @100;
-    driverCameraError @101;
-    wideRoadCameraError @102;
-    localizerMalfunction @103;
+    
+    #Autohold Activate
+    autoHoldActivated @99;
+
+    #Enable greyPanda
+    startupGreyPanda @100;
+
+    #Road speed Limiter
+    slowingDownSpeed @101;
+    slowingDownSpeedSound @102;
 
     driverMonitorLowAccDEPRECATED @68;
     radarCanErrorDEPRECATED @15;
@@ -130,11 +135,12 @@ struct CarEvent @0x9b1657f34caf3ad3 {
     modelLagWarningDEPRECATED @93;
     startupOneplusDEPRECATED @82;
 
-    turningIndicatorOn @105;
-    autoLaneChange @106;
-
-    slowingDownSpeed @107;
-    slowingDownSpeedSound @108;
+    usbError @103;
+    roadCameraError @104;
+    driverCameraError @105;
+    wideRoadCameraError @106;
+    localizerMalfunction @107;
+    startupNoFw @108;
   }
 }
 
@@ -159,6 +165,7 @@ struct CarState {
   # brake pedal, 0.0-1.0
   brake @5 :Float32;      # this is user pedal only
   brakePressed @6 :Bool;  # this is user pedal only
+  brakeLights @19 :Bool;
 
   # steering wheel
   steeringAngleDeg @7 :Float32;
@@ -193,6 +200,12 @@ struct CarState {
   # clutch (manual transmission only)
   clutchPressed @28 :Bool;
 
+  #Kegman 3Bar Distance Profile
+  cruiseGap @41 : Int32;  
+  readdistancelines @37 :Float32;
+  lkMode @38 :Bool;
+  engineRPM @39 :Float32;
+
   # which packets this state came from
   canMonoTimes @12: List(UInt64);
 
@@ -200,8 +213,8 @@ struct CarState {
   leftBlindspot @33 :Bool; # Is there something blocking the left lane change
   rightBlindspot @34 :Bool; # Is there something blocking the right lane change
 
-  cruiseGap @37 : Int32;
-  autoHold @38 : Int32;
+  # Autohold for GM
+  autoHoldActivated @40 :Bool;
 
   struct WheelSpeeds {
     # optional wheel speeds
@@ -255,7 +268,6 @@ struct CarState {
   }
 
   errorsDEPRECATED @0 :List(CarEvent.EventName);
-  brakeLights @19 :Bool;
 }
 
 # ******* radar state @ 20hz *******
@@ -304,23 +316,6 @@ struct CarControl {
   cruiseControl @4 :CruiseControl;
   hudControl @5 :HUDControl;
 
-  sccSmoother @8 :SccSmoother;
-
-  struct SccSmoother {
-    longControl @0:Bool;
-
-    cruiseVirtualMaxSpeed @1 :Float32;
-    cruiseRealMaxSpeed @2 :Float32;
-
-    logMessage @3 :Text;
-
-    roadLimitSpeedActive @4 :Int32;
-    roadLimitSpeed @5 :UInt32;
-    roadLimitSpeedLeftDist @6 :UInt32;
-
-    autoTrGap @7 :UInt32;
-  }
-
   struct Actuators {
     # range from 0.0 - 1.0
     gas @0: Float32;
@@ -360,6 +355,9 @@ struct CarControl {
       seatbeltUnbuckled @5;
       speedTooHigh @6;
       ldw @7;
+
+      # Autohold Event
+      autoHoldActivated @8;
     }
 
     enum AudibleAlert {
@@ -373,6 +371,7 @@ struct CarControl {
       chimePrompt @7;
       chimeWarning2Repeat @8;
       chimeSlowingDownSpeed @9;
+      chimeAutoHoldOn @10;
     }
   }
 
@@ -390,10 +389,13 @@ struct CarParams {
 
   enableGasInterceptor @2 :Bool;
   pcmCruise @3 :Bool;        # is openpilot's state tied to the PCM's cruise state?
+  enableCamera @4 :Bool;
   enableDsu @5 :Bool;        # driving support unit
   enableApgs @6 :Bool;       # advanced parking guidance system
   enableBsm @56 :Bool;       # blind spot monitoring
   hasStockCamera @57 :Bool;  # factory LKAS/LDW camera is present
+  # Autohold
+  enableAutoHold @58 :Bool;
 
   minEnableSpeed @7 :Float32;
   minSteerSpeed @8 :Float32;
@@ -454,13 +456,6 @@ struct CarParams {
   communityFeature @46: Bool;  # true if a community maintained feature is detected
   fingerprintSource @49: FingerprintSource;
   networkLocation @50 :NetworkLocation;  # Where Panda/C2 is integrated into the car's CAN network
-  mdpsBus @58: Int8;
-  sasBus @59: Int8;
-  sccBus @60: Int8;
-  enableAutoHold @61 :Bool;
-  hasScc13 @62 :Bool;
-  hasScc14 @63 :Bool;
-  hasEms @64 :Bool;
 
   struct LateralParams {
     torqueBP @0 :List(Int32);
@@ -472,7 +467,11 @@ struct CarParams {
     kpV @1 :List(Float32);
     kiBP @2 :List(Float32);
     kiV @3 :List(Float32);
-    kf @4 :Float32;
+    kf @6 :Float32;
+
+    #D gain
+    kdBP @4 :List(Float32);
+    kdV @5 :List(Float32);
   }
 
   struct LongitudinalPIDTuning {
@@ -599,6 +598,5 @@ struct CarParams {
     gateway @1;    # Integration at vehicle's CAN gateway
   }
 
-  enableCameraDEPRECATED @4 :Bool;
-  isPandaBlackDEPRECATED @39: Bool;
+  isPandaBlack @39: Bool;
 }
