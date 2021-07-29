@@ -8,7 +8,7 @@
 #include "selfdrive/ui/qt/util.h"
 
 void Sidebar::drawMetric(QPainter &p, const QString &label, const QString &val, QColor c, int y) {
-  const QRect rect = {30, y, 240, val.isEmpty() ? (label.contains("\n") ? 124 : 100) : 148};
+  const QRect rect = {30, y, 240, val.isEmpty() ? (label.contains("\n") ? 130 : 130) : 135};
 
   p.setPen(Qt::NoPen);
   p.setBrush(QBrush(c));
@@ -24,14 +24,14 @@ void Sidebar::drawMetric(QPainter &p, const QString &label, const QString &val, 
 
   p.setPen(QColor(0xff, 0xff, 0xff));
   if (val.isEmpty()) {
-    configFont(p, "Open Sans", 35, "Bold");
-    const QRect r = QRect(rect.x() + 30, rect.y(), rect.width() - 40, rect.height());
+    configFont(p, "Open Sans", 40, "Regular");
+    const QRect r = QRect(rect.x() + 35, rect.y(), rect.width() - 50, rect.height());
     p.drawText(r, Qt::AlignCenter, label);
   } else {
-    configFont(p, "Open Sans", 58, "Bold");
-    p.drawText(rect.x() + 50, rect.y() + 71, val);
+    configFont(p, "Open Sans", 58, "Regular");
+    p.drawText(rect.x() + 50, rect.y() + 61, val);
     configFont(p, "Open Sans", 35, "Regular");
-    p.drawText(rect.x() + 50, rect.y() + 50 + 77, label);
+    p.drawText(rect.x() + 50, rect.y() + 35 + 77, label);
   }
 }
 
@@ -64,7 +64,8 @@ void Sidebar::updateState(const UIState &s) {
   bool online = net_type != network_type[cereal::DeviceState::NetworkType::NONE];
   setProperty("connectStr",  online ? "CONNECT\nONLINE" : "CONNECT\nOFFLINE");
   setProperty("connectStatus", online ? good_color : danger_color);
-
+  m_battery_img = deviceState.getBatteryStatus() == "Charging" ? 1 : 0;
+  m_batteryPercent = deviceState.getBatteryPercent();
 
   QColor tempStatus = danger_color;
   auto ts = deviceState.getThermalStatus();
@@ -94,6 +95,22 @@ void Sidebar::paintEvent(QPaintEvent *event) {
   p.setPen(Qt::NoPen);
   p.setRenderHint(QPainter::Antialiasing);
 
+  //battery
+  QRect  rect(45, 293, 96, 36);
+  QRect  bq(50, 298, int(76* m_batteryPercent * 0.01), 25);
+  QBrush bgBrush("#149948");
+  p.fillRect(bq,  bgBrush);
+  p.drawImage(rect, battery_imgs[m_battery_img]);
+
+  p.setPen(Qt::white);
+  configFont(p, "Open Sans", 30, "Regular");
+
+  char battery_str[32];
+
+  const QRect bt = QRect(170, 288, event->rect().width(), 50);
+  snprintf(battery_str, sizeof(battery_str), "%d%%", m_batteryPercent);
+  p.drawText(bt, Qt::AlignLeft, battery_str);
+
   // static imgs
   p.setOpacity(0.65);
   p.drawImage(settings_btn.x(), settings_btn.y(), settings_img);
@@ -112,7 +129,7 @@ void Sidebar::paintEvent(QPaintEvent *event) {
   configFont(p, "Open Sans", 30, "Regular");
   p.setPen(QColor(0xff, 0xff, 0xff));
 
-  const QRect r = QRect(0, 247, event->rect().width(), 50);
+  const QRect r = QRect(-15, 237, event->rect().width(), 50);
 
   if(Hardware::EON() && net_type == network_type[cereal::DeviceState::NetworkType::WIFI])
     p.drawText(r, Qt::AlignCenter, wifi_addr);

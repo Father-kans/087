@@ -53,7 +53,10 @@
 #define COLOR_RED_ALPHA(x) nvgRGBA(201, 34, 49, x)
 #define COLOR_YELLOW nvgRGBA(218, 202, 37, 255)
 #define COLOR_RED nvgRGBA(201, 34, 49, 255)
-
+#define COLOR_OCHRE nvgRGBA(218, 111, 37, 255)
+#define COLOR_GREEN_ALPHA(x) nvgRGBA(0, 255, 0, x)
+#define COLOR_DARKGREEN nvgRGBA(44, 139, 37, 255)
+#define COLOR_BLUE_ALPHA(x) nvgRGBA(0, 0, 255, x)
 typedef cereal::CarControl::HUDControl::AudibleAlert AudibleAlert;
 
 // TODO: this is also hardcoded in common/transformations/camera.py
@@ -126,7 +129,15 @@ typedef struct UIScene {
   mat3 view_from_calib;
   bool world_objects_visible;
 
+  float angleSteers;
+  int engineRPM;
+  bool recording;
+  bool brakeLights;
   cereal::PandaState::PandaType pandaType;
+
+  // gps
+  int satelliteCount;
+  float gpsAccuracy;
 
   // modelV2
   float lane_line_probs[4];
@@ -146,11 +157,11 @@ typedef struct UIScene {
 
   // neokii dev UI
   cereal::CarControl::Reader car_control;
+  cereal::ControlsState::Reader controls_state;
+  cereal::CarState::Reader car_state;
   cereal::CarParams::Reader car_params;
   cereal::GpsLocationData::Reader gps_ext;
   cereal::LiveParametersData::Reader live_params;
-  int satelliteCount;
-
 } UIScene;
 
 typedef struct UIState {
@@ -182,11 +193,12 @@ typedef struct UIState {
 
   bool awake;
 
+  Rect video_rect, viz_rect;
   float car_space_transform[6];
   bool wide_camera;
 
   //
-  bool show_debug_ui, custom_lead_mark;
+  bool custom_lead_mark;
   TouchState touch;
   int lock_on_anim_index;
 

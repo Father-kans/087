@@ -116,7 +116,7 @@ void start_capture() {
   if (stat(videos_dir, &st) == -1) {
     mkdir(videos_dir,0700);
   }
-  /*if (captureNum == 0 && files_created == 0) {
+  if (captureNum == 0 && files_created == 0) {
     DIR *dir;
     struct dirent *ent;
     if ((dir = opendir ("/storage/emulated/0/videos")) != NULL) {
@@ -126,7 +126,7 @@ void start_capture() {
       captureNum = files_created;
       closedir (dir);
     }
-  }*/
+  }
 
   if (strlen(filenames[captureNum]) && files_created >= RECORD_FILES) {
     if (locked_files[captureNum] > 0) {
@@ -338,10 +338,10 @@ bool dashcam( UIState *s, int touch_x, int touch_y ) {
     }
   }
 
-  //if (screen_lock_button_clicked(touch_x,touch_y,lock_button)) {
-  //  screen_toggle_lock();
-  //  touched = true;
-  //}
+  if (screen_lock_button_clicked(touch_x,touch_y,lock_button)) {
+    screen_toggle_lock();
+    touched = true;
+  }
   if (!s->vipc_client->connected) {
     // Assume car is not in drive so stop recording
     stop_capture();
@@ -350,7 +350,7 @@ bool dashcam( UIState *s, int touch_x, int touch_y ) {
   if ((*s->sm)["carState"].getCarState().getVEgo() < 1.5 && !(*s->sm)["controlsState"].getControlsState().getEnabled()) {
     stop_capture();
   }
-  //s->scene.recording = (captureState != CAPTURE_STATE_NOT_CAPTURING);
+  s->scene.recording = (captureState != CAPTURE_STATE_NOT_CAPTURING);
   
   return touched;
 }

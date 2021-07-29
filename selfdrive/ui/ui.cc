@@ -135,6 +135,15 @@ static void update_state(UIState *s) {
     scene.engageable = sm["controlsState"].getControlsState().getEngageable();
     scene.dm_active = sm["driverMonitoringState"].getDriverMonitoringState().getIsActiveMode();
   }
+
+  if (scene.started && sm.updated("controlsState")) {
+    scene.controls_state = sm["controlsState"].getControlsState();
+    s->scene.angleSteers  = scene.controls_state.getAngleSteers();
+  }
+  if (sm.updated("carState")) {
+    scene.car_state = sm["carState"].getCarState();
+    s->scene.engineRPM = scene.car_state.getEngineRPM();
+  }
   if (sm.updated("radarState") && s->vg) {
     std::optional<cereal::ModelDataV2::XYZTData::Reader> line;
     if (sm.rcv_frame("modelV2") > 0) {
@@ -168,6 +177,16 @@ static void update_state(UIState *s) {
     scene.ignition = pandaState.getIgnitionLine() || pandaState.getIgnitionCan();
   } else if ((s->sm->frame - s->sm->rcv_frame("pandaState")) > 5*UI_FREQ) {
     scene.pandaType = cereal::PandaState::PandaType::UNKNOWN;
+  }
+  if (sm.updated("ubloxGnss")) {
+    auto data = sm["ubloxGnss"].getUbloxGnss();
+    if (data.which() == cereal::UbloxGnss::MEASUREMENT_REPORT) {
+      scene.satelliteCount = data.getMeasurementReport().getNumMeas();
+    }
+  }
+  if (sm.updated("gpsLocationExternal")) {
+    scene.gpsAccuracy = sm["gpsLocationExternal"].getGpsLocationExternal().getAccuracy();
+    scene.gps_ext = sm["gpsLocationExternal"].getGpsLocationExternal();
   }
   if (sm.updated("carParams")) {
     scene.car_params = sm["carParams"].getCarParams();
@@ -210,7 +229,6 @@ static void update_params(UIState *s) {
   if (frame % (5*UI_FREQ) == 0) {
     Params params;
     scene.is_metric = params.getBool("IsMetric");
-    s->show_debug_ui = params.getBool("ShowDebugUI");
 	s->custom_lead_mark = params.getBool("CustomLeadMark");
   }
 }
@@ -283,28 +301,16 @@ static void update_extras(UIState *s)
    if(sm.updated("carControl"))
     scene.car_control = sm["carControl"].getCarControl();
 
-   if(sm.updated("gpsLocationExternal"))
-    scene.gps_ext = sm["gpsLocationExternal"].getGpsLocationExternal();
-
    if(sm.updated("liveParameters"))
     scene.live_params = sm["liveParameters"].getLiveParameters();
-	
-   if (sm.updated("ubloxGnss")) {
-    auto data = sm["ubloxGnss"].getUbloxGnss();
-    if (data.which() == cereal::UbloxGnss::MEASUREMENT_REPORT) {
-      scene.satelliteCount = data.getMeasurementReport().getNumMeas();
-    }
-  }
 
 
-#if UI_FEATURE_DASHCAM
    if(s->awake)
    {
         int touch_x = -1, touch_y = -1;
         int touched = touch_poll(&(s->touch), &touch_x, &touch_y, 0);
         dashcam(s, touch_x, touch_y);
    }
-#endif
 }
 
 

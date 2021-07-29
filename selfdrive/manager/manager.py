@@ -38,21 +38,6 @@ def manager_init():
     ("CompletedTrainingVersion", "0"),
     ("HasAcceptedTerms", "0"),
     ("OpenpilotEnabledToggle", "1"),
-    ("IsMetric", "1"),
-
-    # HKG
-    ("UseClusterSpeed", "1"),
-    ("LongControlEnabled", "0"),
-    ("MadModeEnabled", "1"),
-    ("IsLdwsCar", "0"),
-    ("LaneChangeEnabled", "0"),
-    ("AutoLaneChangeEnabled", "0"),
-
-    ("SccSmootherSlowOnCurves", "0"),
-    ("SccSmootherSyncGasPressed", "0"),
-    ("ShowDebugUI", "0"),
-    ("FuseWithStockScc", "1"),
-    ("CustomLeadMark", "0")
   ]
   if not PC:
     default_params.append(("LastUpdateTime", datetime.datetime.utcnow().isoformat().encode('utf8')))
@@ -135,7 +120,7 @@ def manager_thread():
   cloudlog.info({"environ": os.environ})
 
   # save boot log
-  #subprocess.call("./bootlog", cwd=os.path.join(BASEDIR, "selfdrive/loggerd"))
+  subprocess.call("./bootlog", cwd=os.path.join(BASEDIR, "selfdrive/loggerd"))
 
   params = Params()
 
