@@ -17,6 +17,7 @@ EventName = car.CarEvent.EventName
 # WARNING: this value was determined based on the model's training distribution,
 #          model predictions above this speed can be unpredictable
 MAX_CTRL_SPEED = (V_CRUISE_MAX + 4) * CV.KPH_TO_MS  # 135 + 4 = 86 mph
+DISENGAGE_ON_GAS = False
 
 # generic car and radar interfaces
 
@@ -36,6 +37,7 @@ class CarInterfaceBase():
       self.cp = self.CS.get_can_parser(CP)
       self.cp_cam = self.CS.get_cam_can_parser(CP)
       self.cp_body = self.CS.get_body_can_parser(CP)
+      self.cp_chassis = self.CS.get_chassis_can_parser(CP) #this line for brakeLights
 
     self.CC = None
     if CarController is not None:
@@ -62,6 +64,7 @@ class CarInterfaceBase():
   def get_std_params(candidate, fingerprint, has_relay):
     ret = car.CarParams.new_message()
     ret.carFingerprint = candidate
+    ret.isPandaBlack = has_relay
 
     # standard ALC params
     ret.steerControlType = car.CarParams.SteerControlType.torque
@@ -116,8 +119,8 @@ class CarInterfaceBase():
       events.add(EventName.wrongCarMode)
     if cs_out.espDisabled:
       events.add(EventName.espDisabled)
-    #if cs_out.gasPressed:
-    #  events.add(EventName.gasPressed)
+    if cs_out.gasPressed and DISENGAGE_ON_GAS:
+      events.add(EventName.gasPressed)
     if cs_out.stockFcw:
       events.add(EventName.stockFcw)
     if cs_out.stockAeb:
@@ -144,7 +147,7 @@ class CarInterfaceBase():
     # Disable on rising edge of gas or brake. Also disable on brake when speed > 0.
     # Optionally allow to press gas at zero speed to resume.
     # e.g. Chrysler does not spam the resume button yet, so resuming with gas is handy. FIXME!
-    if (cs_out.gasPressed and (not self.CS.out.gasPressed) and cs_out.vEgo > gas_resume_speed) or \
+    if (DISENGAGE_ON_GAS and cs_out.gasPressed and (not self.CS.out.gasPressed) and cs_out.vEgo > gas_resume_speed) or \
        (cs_out.brakePressed and (not self.CS.out.brakePressed or not cs_out.standstill)):
       events.add(EventName.pedalPressed)
 
@@ -244,4 +247,9 @@ class CarStateBase:
 
   @staticmethod
   def get_body_can_parser(CP):
+    return None
+
+#bellows are for brakeLights
+  @staticmethod
+  def get_chassis_can_parser(CP):
     return None
