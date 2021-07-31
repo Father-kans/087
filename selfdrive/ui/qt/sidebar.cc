@@ -62,7 +62,7 @@ void Sidebar::updateState(const UIState &s) {
   setProperty("wifiAddr", deviceState.getWifiIpAddress().cStr());
 
   bool online = net_type != network_type[cereal::DeviceState::NetworkType::NONE];
-  setProperty("connectStr",  online ? "CONNECT\nONLINE" : "CONNECT\nOFFLINE");
+  setProperty("connectStr",  online ? "인터넷\n연결됨" : "인터넷\n오프라인");
   setProperty("connectStatus", online ? good_color : danger_color);
   m_battery_img = deviceState.getBatteryStatus() == "Charging" ? 1 : 0;
   m_batteryPercent = deviceState.getBatteryPercent();
@@ -77,14 +77,14 @@ void Sidebar::updateState(const UIState &s) {
   setProperty("tempStatus", tempStatus);
   setProperty("tempVal", (int)deviceState.getAmbientTempC());
 
-  QString pandaStr = "VEHICLE\nONLINE";
+  QString pandaStr = "차량\n연결됨";
   QColor pandaStatus = good_color;
   if (s.scene.pandaType == cereal::PandaState::PandaType::UNKNOWN) {
     pandaStatus = danger_color;
-    pandaStr = "NO\nPANDA";
+    pandaStr = "차량\n연결안됨";
   } /*else if (s.scene.started && !sm["liveLocationKalman"].getLiveLocationKalman().getGpsOK()) {
     pandaStatus = warning_color;
-    pandaStr = "GPS\nSEARCHING";
+    pandaStr = "GPS\n찾는중";
   }*/
   setProperty("pandaStr", pandaStr);
   setProperty("pandaStatus", pandaStatus);
@@ -138,7 +138,7 @@ void Sidebar::paintEvent(QPaintEvent *event) {
 
   // metrics
   configFont(p, "Open Sans", 35, "Regular");
-  drawMetric(p, "TEMP", QString("%1°C").arg(temp_val), temp_status, 338);
+  drawMetric(p, "이온온도", QString("%1°C").arg(temp_val), temp_status, 355);
   drawMetric(p, panda_str, "", panda_status, 518);
   drawMetric(p, connect_str, "", connect_status, 676);
 }
