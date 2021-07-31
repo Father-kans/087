@@ -16,11 +16,12 @@
 
 TrackWidget::TrackWidget(QWidget *parent) : QWidget(parent) {
   setFixedSize(spinner_size);
+  setFixedSize(screenBG_spinner_size);
   setAutoFillBackground(true);
   setPalette(Qt::black);
 
   // pre-compute all the track imgs. make this a gif instead?
-  QPixmap comma_img = QPixmap("../assets/img_spinner_comma.png").scaled(spinner_size, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+  QPixmap comma_img = QPixmap("../assets/img_spinner_comma.png").scaled(screenBG_spinner_size, Qt::KeepAspectRatio, Qt::SmoothTransformation);
   QTransform transform(1, 0, 0, 1, width() / 2, height() / 2);
   QPixmap track_img = QPixmap("../assets/img_spinner_track.png").scaled(spinner_size, Qt::KeepAspectRatio, Qt::SmoothTransformation);
   for (QPixmap &img : track_imgs) {
@@ -28,7 +29,7 @@ TrackWidget::TrackWidget(QWidget *parent) : QWidget(parent) {
     QPainter p(&img);
     p.setRenderHint(QPainter::SmoothPixmapTransform);
     p.setTransform(transform.rotate(360 / spinner_fps));
-    p.drawPixmap(-width() / 2, -height() / 2, track_img);
+    p.drawPixmap(-width()/8+10, -height()/4+40, track_img);
   }
 
   m_anim.setDuration(1000);
@@ -49,21 +50,21 @@ void TrackWidget::paintEvent(QPaintEvent *event) {
 Spinner::Spinner(QWidget *parent) : QWidget(parent) {
   QGridLayout *main_layout = new QGridLayout(this);
   main_layout->setSpacing(0);
-  main_layout->setMargin(200);
+  main_layout->setMargin(0);
 
   main_layout->addWidget(new TrackWidget(this), 0, 0, Qt::AlignHCenter | Qt::AlignVCenter);
 
   text = new QLabel();
   text->setWordWrap(true);
-  text->setVisible(false);
+  text->setVisible(true);
   text->setAlignment(Qt::AlignCenter);
   main_layout->addWidget(text, 1, 0, Qt::AlignHCenter);
 
   progress_bar = new QProgressBar();
-  progress_bar->setRange(5, 100);
-  progress_bar->setTextVisible(false);
-  progress_bar->setVisible(false);
-  progress_bar->setFixedHeight(20);
+  progress_bar->setRange(1, 100);
+  progress_bar->setTextVisible(true);
+  progress_bar->setVisible(true);
+  progress_bar->setFixedHeight(65);
   main_layout->addWidget(progress_bar, 1, 0, Qt::AlignHCenter);
 
   setStyleSheet(R"(
@@ -72,17 +73,18 @@ Spinner::Spinner(QWidget *parent) : QWidget(parent) {
     }
     QLabel {
       color: white;
-      font-size: 80px;
+      font-size: 20px;
       background-color: transparent;
     }
     QProgressBar {
-      background-color: #373737;
-      width: 1000px;
+      background-color: transparent;
+      width: 125px;
       border solid white;
-      border-radius: 10px;
+      border-radius: 1px;
     }
     QProgressBar::chunk {
-      border-radius: 10px;
+      width: 600px;
+      border-radius: 1px;
       background-color: white;
     }
   )");
