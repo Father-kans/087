@@ -654,11 +654,16 @@ static void bb_ui_draw_basic_info(UIState *s)
                                                         live_params.getAngleOffsetAverageDeg());
 
     int x = bdr_s * 2;
-    int y = s->fb_h - 24;
-
+    int y = s->fb_h - 10;
+    nvgBeginPath(s->vg);
+    nvgRect(s->vg, x-40, y-27, 950, 50);
+    NVGcolor squareColor = nvgRGBA(34, 139, 34, 200);
+    nvgFillColor(s->vg, squareColor);
+    nvgFill(s->vg);
+    const NVGcolor textColor2 = COLOR_WHITE_ALPHA(254);
     nvgTextAlign(s->vg, NVG_ALIGN_LEFT | NVG_ALIGN_MIDDLE);
 
-    ui_draw_text(s, x, y, str, 20 * 2.5, COLOR_WHITE_ALPHA(200), "sans-semibold");
+    ui_draw_text(s, x, y, str, 25 * 2.5, COLOR_WHITE_ALPHA(200), "sans-semibold");
 }
 
 static void bb_ui_draw_debug(UIState *s)
@@ -727,7 +732,7 @@ static void bb_ui_draw_UI(UIState *s)
 
   const int bb_dmr_w = 180;
   const int bb_dmr_x = s->fb_w - bb_dmr_w - (bdr_is * 2);
-  const int bb_dmr_y = (box_y + (bdr_is * 1.5)) + UI_FEATURE_RIGHT_Y;
+  const int bb_dmr_y = box_y + UI_FEATURE_RIGHT_Y;
 
 #if UI_FEATURE_LEFT
   bb_ui_draw_measures_left(s, bb_dml_x, bb_dml_y, bb_dml_w);
@@ -810,8 +815,8 @@ static void ui_draw_vision_event(UIState *s) {
   const UIScene *scene = &s->scene;
   const int radius = 96;
   const int viz_event_w = 220;
-  const int viz_event_x = s->fb_w - radius * 2 - bdr_s * 2 - 220;
-  const int viz_event_y = radius  - (bdr_s * 2) - 55;
+  const int viz_event_x = s->fb_w - radius * 2 - bdr_s * 2 - 240;
+  const int viz_event_y = radius  - (bdr_s * 2);
   if (s->scene.controls_state.getDecelForModel() && s->scene.controls_state.getEnabled()) {
     // draw winding road sign
     const int img_turn_size = 160*1.5*0.82;
