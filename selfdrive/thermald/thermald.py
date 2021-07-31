@@ -19,6 +19,8 @@ from selfdrive.controls.lib.alertmanager import set_offroad_alert
 from selfdrive.hardware import EON, TICI, HARDWARE
 from selfdrive.loggerd.config import get_available_percent
 from selfdrive.pandad import get_expected_signature
+from selfdrive.kegman_kans_conf import kegman_kans_conf
+kegman_kans = kegman_kans_conf()
 from selfdrive.swaglog import cloudlog
 from selfdrive.thermald.power_monitoring import PowerMonitoring
 from selfdrive.version import tested_branch, terms_version, training_version
@@ -121,6 +123,25 @@ def handle_fan_uno(max_cpu_temp, bat_temp, fan_speed, ignition):
 
   return new_speed
 
+def check_car_battery_voltage(should_start, pandaState, charging_disabled, msg):
+
+  # charging disallowed if:
+  #   - there are pandaState packets from panda, and;
+  #   - 12V battery voltage is too low, and;
+  #   - onroad isn't started
+  print(pandaState)
+  
+  if charging_disabled and (pandaState is None or pandaState.pandaState.voltage > (int(kegman_kans.conf['carVoltageMinEonShutdown'])+500)) and msg.deviceState.batteryPercent < int(kegman_kans.conf['battChargeMin']):
+    charging_disabled = False
+    os.system('echo "1" > /sys/class/power_supply/battery/charging_enabled')
+  elif not charging_disabled and (msg.deviceState.batteryPercent > int(kegman_kans.conf['battChargeMax']) or (pandaState is not None and pandaState.pandaState.voltage < int(kegman_kans.conf['carVoltageMinEonShutdown']) and not should_start)):
+    charging_disabled = True
+    os.system('echo "0" > /sys/class/power_supply/battery/charging_enabled')
+  elif msg.deviceState.batteryCurrent < 0 and msg.deviceState.batteryPercent > int(kegman_kans.conf['battChargeMax']):
+    charging_disabled = True
+    os.system('echo "0" > /sys/class/power_supply/battery/charging_enabled')
+
+  return charging_disabled
 
 def set_offroad_alert_if_changed(offroad_alert: str, show_alert: bool, extra_text: Optional[str]=None):
   if prev_offroad_states.get(offroad_alert, None) == (show_alert, extra_text):
@@ -162,9 +183,11 @@ def thermald_thread():
   current_filter = FirstOrderFilter(0., CURRENT_TAU, DT_TRML)
   cpu_temp_filter = FirstOrderFilter(0., CPU_TEMP_TAU, DT_TRML)
   pandaState_prev = None
+  charging_disabled = False
   should_start_prev = False
   handle_fan = None
   is_uno = False
+  has_relay = False
   ui_running_prev = False
 
   params = Params()
@@ -216,6 +239,7 @@ def thermald_thread():
       # Setup fan handler on first connect to panda
       if handle_fan is None and pandaState.pandaState.pandaType != log.PandaState.PandaType.unknown:
         is_uno = pandaState.pandaState.pandaType == log.PandaState.PandaType.uno
+        has_relay = pandaState.pandaState.pandaType in [log.PandaState.PandaType.blackPanda, log.PandaState.PandaType.uno, log.PandaState.PandaType.dos]
 
         if (not EON) or is_uno:
           cloudlog.info("Setting up UNO fan handler")
@@ -296,7 +320,7 @@ def thermald_thread():
     # since going onroad increases load and can make temps go over 107
     # We only do this if there is a relay that prevents the car from faulting
     is_offroad_for_5_min = (started_ts is None) and ((not started_seen) or (off_ts is None) or (sec_since_boot() - off_ts > 60 * 5))
-    if max_cpu_temp > 107. or bat_temp >= 63. or (is_offroad_for_5_min and max_cpu_temp > 70.0):
+    if max_cpu_temp > 107. or bat_temp >= 63. or (has_relay and is_offroad_for_5_min and max_cpu_temp > 70.0):
       # onroad not allowed
       thermal_status = ThermalStatus.danger
     elif max_comp_temp > 96.0 or bat_temp > 60.:
@@ -375,7 +399,9 @@ def thermald_thread():
     # controls will warn with CPU above 95 or battery above 60
     startup_conditions["device_temp_good"] = thermal_status < ThermalStatus.danger
     set_offroad_alert_if_changed("Offroad_TemperatureTooHigh", (not startup_conditions["device_temp_good"]))
-
+    startup_conditions["hardware_supported"] = pandaState is not None
+    set_offroad_alert_if_changed("Offroad_HardwareUnsupported", pandaState is not None and not startup_conditions["hardware_supported"])
+	
     if TICI:
       set_offroad_alert_if_changed("Offroad_NvmeMissing", (not Path("/data/media").is_mount()))
 
@@ -398,6 +424,17 @@ def thermald_thread():
       started_ts = None
       if off_ts is None:
         off_ts = sec_since_boot()
+        os.system('echo powersave > /sys/class/devfreq/soc:qcom,cpubw/governor')
+
+    charging_disabled = check_car_battery_voltage(should_start, pandaState, charging_disabled, msg)
+
+    if msg.deviceState.batteryCurrent > 0:
+      msg.deviceState.batteryStatus = "Discharging"
+    else:
+      msg.deviceState.batteryStatus = "Charging"
+
+    
+    msg.deviceState.chargingDisabled = charging_disabled
 
     # Offroad power monitoring
     power_monitor.calculate(pandaState)
