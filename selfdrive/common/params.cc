@@ -227,20 +227,6 @@ std::unordered_map<std::string, uint32_t> keys = {
     {"Offroad_NvmeMissing", CLEAR_ON_MANAGER_START},
     {"ForcePowerDown", CLEAR_ON_MANAGER_START},
     {"JoystickDebugMode", CLEAR_ON_MANAGER_START | CLEAR_ON_IGNITION_OFF},
-
-    {"SelectedCar", PERSISTENT},
-    {"UseClusterSpeed", PERSISTENT},
-    {"LongControlEnabled", PERSISTENT},
-    {"MadModeEnabled", PERSISTENT},
-    {"IsLdwsCar", PERSISTENT},
-    {"LaneChangeEnabled", PERSISTENT},
-    {"AutoLaneChangeEnabled", PERSISTENT},
-
-    {"SccSmootherState", PERSISTENT},
-    {"SccSmootherSlowOnCurves", PERSISTENT},
-    {"SccSmootherSyncGasPressed", PERSISTENT},
-    {"FuseWithStockScc", PERSISTENT},
-    {"ShowDebugUI", PERSISTENT},
     {"CustomLeadMark", PERSISTENT},
 };
 
