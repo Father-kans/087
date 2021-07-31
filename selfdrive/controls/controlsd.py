@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 import os
 import math
+
+import numpy as np
+
 from cereal import car, log
 from common.numpy_fast import clip, interp
 from common.realtime import sec_since_boot, config_realtime_process, Priority, Ratekeeper, DT_CTRL
@@ -11,7 +14,7 @@ from selfdrive.config import Conversions as CV
 from selfdrive.swaglog import cloudlog
 from selfdrive.boardd.boardd import can_list_to_can_capnp
 from selfdrive.car.car_helpers import get_car, get_startup_event, get_one_can
-from selfdrive.controls.lib.lane_planner import CAMERA_OFFSET
+from selfdrive.controls.lib.lane_planner import CAMERA_OFFSET, TRAJECTORY_SIZE
 from selfdrive.controls.lib.drive_helpers import update_v_cruise, initialize_v_cruise
 from selfdrive.controls.lib.drive_helpers import get_lag_adjusted_curvature
 from selfdrive.controls.lib.longcontrol import LongControl, STARTING_TARGET_SPEED
@@ -24,8 +27,8 @@ from selfdrive.controls.lib.alertmanager import AlertManager
 from selfdrive.controls.lib.vehicle_model import VehicleModel
 from selfdrive.locationd.calibrationd import Calibration
 from selfdrive.hardware import HARDWARE, TICI
-from selfdrive.car.hyundai.scc_smoother import SccSmoother
 from selfdrive.ntune import ntune_get, ntune_isEnabled
+from selfdrive.road_speed_limiter import road_speed_limiter_get_max_speed
 
 LDW_MIN_SPEED = 31 * CV.MPH_TO_MS
 LANE_DEPARTURE_THRESHOLD = 0.1
@@ -148,17 +151,10 @@ class Controls:
     self.logged_comm_issue = False
     self.v_target = 0.0
     self.a_target = 0.0
-
-    # scc smoother
-    self.is_cruise_enabled = False
-    self.cruiseVirtualMaxSpeed = 0
-    self.clu_speed_ms = 0.
-    self.apply_accel = 0.
-    self.fused_accel = 0.
-    self.lead_drel = 0.
-    self.aReqValue = 0.
-    self.aReqValueMin = 0.
-    self.aReqValueMax = 0.
+    self.road_limit_speed = 0
+    self.road_limit_left_dist = 0
+    self.v_cruise_kph_limit = 0
+    self.curve_speed_ms = 255.
 
     # TODO: no longer necessary, aside from process replay
     self.sm['liveParameters'].valid = True
@@ -234,8 +230,6 @@ class Controls:
       if (CS.leftBlindspot and direction == LaneChangeDirection.left) or \
          (CS.rightBlindspot and direction == LaneChangeDirection.right):
         self.events.add(EventName.laneChangeBlocked)
-      elif self.sm['lateralPlan'].autoLaneChangeEnabled and self.sm['lateralPlan'].autoLaneChangeTimer > 0:
-        self.events.add(EventName.autoLaneChange)
       else:
         if direction == LaneChangeDirection.left:
           self.events.add(EventName.preLaneChangeLeft)
@@ -269,7 +263,7 @@ class Controls:
     else:
       self.logged_comm_issue = False
 
-    if not self.sm['lateralPlan'].mpcSolutionValid and not (EventName.turningIndicatorOn in self.events.names):
+    if not self.sm['lateralPlan'].mpcSolutionValid:
       self.events.add(EventName.plannerError)
     if not self.sm['liveLocationKalman'].sensorsOK and not NOSENSOR:
       if self.sm.frame > 5 / DT_CTRL:  # Give locationd some time to receive all the inputs
@@ -327,9 +321,9 @@ class Controls:
       v_future = speeds[-1]
     else:
       v_future = 100.0
-    #if CS.brakePressed and v_future >= STARTING_TARGET_SPEED \
-    #  and self.CP.openpilotLongitudinalControl and CS.vEgo < 0.3:
-    #  self.events.add(EventName.noTarget)
+    if CS.brakePressed and v_future >= STARTING_TARGET_SPEED \
+      and self.CP.openpilotLongitudinalControl and CS.vEgo < 0.3:
+      self.events.add(EventName.noTarget)
 
   def data_sample(self):
     """Receive data from sockets and update carState"""
@@ -367,20 +361,61 @@ class Controls:
 
     return CS
 
+# bellows are for Slow on Curve by Neokii
+  def cal_curve_speed(self, sm, v_ego, frame):
+
+    if frame % 10 == 0:
+      md = sm['modelV2']
+      if md is not None and len(md.position.x) == TRAJECTORY_SIZE and len(md.position.y) == TRAJECTORY_SIZE:
+        x = md.position.x
+        y = md.position.y
+        dy = np.gradient(y, x)
+        d2y = np.gradient(dy, x)
+        curv = d2y / (1 + dy ** 2) ** 1.5
+
+        start = int(interp(v_ego, [10., 35.], [5, TRAJECTORY_SIZE-10]))
+        curv = curv[start:min(start+10, TRAJECTORY_SIZE)]
+#        curv = curv[5:TRAJECTORY_SIZE - 10]
+        a_y_max = 2.975 - v_ego * 0.0375  # ~1.85 @ 75mph, ~2.6 @ 25mph
+        v_curvature = np.sqrt(a_y_max / np.clip(np.abs(curv), 1e-4, None))
+        model_speed = np.mean(v_curvature) * 0.93
+
+        if model_speed < v_ego:
+          self.curve_speed_ms = float(max(model_speed, 32. * CV.KPH_TO_MS))
+        else:
+          self.curve_speed_ms = 255.
+
+        if np.isnan(self.curve_speed_ms):
+          self.curve_speed_ms = 255.
+      else:
+        self.curve_speed_ms = 255.
+
+    return self.curve_speed_ms
+
   def state_transition(self, CS):
     """Compute conditional state transitions and execute actions on state transitions"""
 
     self.v_cruise_kph_last = self.v_cruise_kph
 
     # if stock cruise is completely disabled, then we can use our own set speed logic
-    self.CP.pcmCruise = self.CI.CP.pcmCruise
+    if not self.CP.pcmCruise:
+      self.v_cruise_kph = update_v_cruise(self.v_cruise_kph, CS.buttonEvents, self.enabled)
+    elif self.CP.pcmCruise and CS.cruiseState.enabled:
+      self.v_cruise_kph = CS.cruiseState.speed * CV.MS_TO_KPH
 
-    #if not self.CP.pcmCruise:
-    #  self.v_cruise_kph = update_v_cruise(self.v_cruise_kph, CS.buttonEvents, self.enabled, self.is_metric)
-    #elif self.CP.pcmCruise and CS.cruiseState.enabled:
-    #  self.v_cruise_kph = CS.cruiseState.speed * CV.MS_TO_KPH
+    limit_speed, self.road_limit_speed, self.road_limit_left_dist, first_started, log = road_speed_limiter_get_max_speed(CS, self.v_cruise_kph)
 
-    SccSmoother.update_cruise_buttons(self, CS, self.CP.openpilotLongitudinalControl)
+    if limit_speed > 20:
+      self.v_cruise_kph_limit = min(limit_speed, self.v_cruise_kph)
+
+      if limit_speed < CS.vEgo * CV.MS_TO_KPH:
+        self.events.add(EventName.slowingDownSpeed)
+
+    else:
+      self.v_cruise_kph_limit = self.v_cruise_kph
+# 2 lines for Slow on Curve
+    curv_speed_ms = self.cal_curve_speed(self.sm, CS.vEgo, self.sm.frame)
+    self.v_cruise_kph_limit = min(self.v_cruise_kph_limit, curv_speed_ms * CV.MS_TO_KPH)
 
     # decrease the soft disable timer at every step, as it's reset on
     # entrance in SOFT_DISABLING state
@@ -451,6 +486,7 @@ class Controls:
   def state_control(self, CS):
     """Given the state, this function returns an actuators packet"""
 
+# Neokii's live tune
     # Update VehicleModel
     params = self.sm['liveParameters']
     x = max(params.stiffnessFactor, 0.1)
@@ -521,8 +557,9 @@ class Controls:
         left_deviation = actuators.steer > 0 and lat_plan.dPathPoints[0] < -0.1
         right_deviation = actuators.steer < 0 and lat_plan.dPathPoints[0] > 0.1
 
-        if left_deviation or right_deviation:
-          self.events.add(EventName.steerSaturated)
+#  Bellow 2Lines' notations are for disable Alerts
+#        if left_deviation or right_deviation:
+#          self.events.add(EventName.steerSaturated)
 
     return actuators, lac_log
 
@@ -534,7 +571,7 @@ class Controls:
     CC.actuators = actuators
 
     CC.cruiseControl.override = True
-    CC.cruiseControl.cancel = self.CP.pcmCruise and not self.enabled and CS.cruiseState.enabled
+    CC.cruiseControl.cancel = not self.CP.pcmCruise or (not self.enabled and CS.cruiseState.enabled)
 
     if self.joystick_mode and self.sm.rcv_frame['testJoystick'] > 0 and self.sm['testJoystick'].buttons[0]:
       CC.cruiseControl.cancel = True
@@ -548,7 +585,7 @@ class Controls:
     CC.cruiseControl.accelOverride = float(self.CI.calc_accel_override(CS.aEgo, self.a_target,
                                                                        CS.vEgo, self.v_target))
 
-    CC.hudControl.setSpeed = float(self.v_cruise_kph * CV.KPH_TO_MS)
+    CC.hudControl.setSpeed = float(self.v_cruise_kph_limit * CV.KPH_TO_MS)
     CC.hudControl.speedVisible = self.enabled
     CC.hudControl.lanesVisible = self.enabled
     CC.hudControl.leadVisible = self.sm['longitudinalPlan'].hasLead
@@ -566,6 +603,8 @@ class Controls:
     if len(meta.desirePrediction) and ldw_allowed:
       l_lane_change_prob = meta.desirePrediction[Desire.laneChangeLeft - 1]
       r_lane_change_prob = meta.desirePrediction[Desire.laneChangeRight - 1]
+
+# Neokii's cameraOffset
       cameraOffset = ntune_get("cameraOffset")
       l_lane_close = left_lane_visible and (self.sm['modelV2'].laneLines[1].y[0] > -(1.08 + cameraOffset))
       r_lane_close = right_lane_visible and (self.sm['modelV2'].laneLines[2].y[0] < (1.08 - cameraOffset))
@@ -584,7 +623,7 @@ class Controls:
 
     if not self.read_only and self.initialized:
       # send car controls over can
-      can_sends = self.CI.apply(CC, self)
+      can_sends = self.CI.apply(CC)
       self.pm.send('sendcan', can_list_to_can_capnp(can_sends, msgtype='sendcan', valid=CS.canValid))
 
     force_decel = (self.sm['driverMonitoringState'].awarenessStatus < 0.) or \
@@ -616,7 +655,7 @@ class Controls:
     controlsState.engageable = not self.events.any(ET.NO_ENTRY)
     controlsState.longControlState = self.LoC.long_control_state
     controlsState.vPid = float(self.LoC.v_pid)
-    controlsState.vCruise = float(self.cruiseVirtualMaxSpeed if self.CP.openpilotLongitudinalControl else self.v_cruise_kph)
+    controlsState.vCruise = float(self.v_cruise_kph_limit)
     controlsState.upAccelCmd = float(self.LoC.pid.p)
     controlsState.uiAccelCmd = float(self.LoC.pid.i)
     controlsState.ufAccelCmd = float(self.LoC.pid.f)
@@ -626,14 +665,10 @@ class Controls:
     controlsState.canErrorCounter = self.can_error_counter
 
     controlsState.angleSteers = steer_angle_without_offset * CV.RAD_TO_DEG
-    controlsState.cluSpeedMs = self.clu_speed_ms
-    controlsState.applyAccel = self.apply_accel
-    controlsState.fusedAccel = self.fused_accel
-    controlsState.leadDist = self.lead_drel
-    controlsState.aReqValue = self.aReqValue
-    controlsState.aReqValueMin = self.aReqValueMin
-    controlsState.aReqValueMax = self.aReqValueMax
+    controlsState.roadLimitSpeed = self.road_limit_speed
+    controlsState.roadLimitSpeedLeftDist = self.road_limit_left_dist
 
+# display SR/SRC/SAD on Ui
     controlsState.steerRatio = self.VM.sR
     controlsState.steerRateCost = ntune_get('steerRateCost')
     controlsState.steerActuatorDelay = ntune_get('steerActuatorDelay')
