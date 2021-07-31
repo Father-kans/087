@@ -229,7 +229,7 @@ static void update_params(UIState *s) {
   if (frame % (5*UI_FREQ) == 0) {
     Params params;
     scene.is_metric = params.getBool("IsMetric");
-	s->custom_lead_mark = params.getBool("CustomLeadMark");
+    s->custom_lead_mark = params.getBool("CustomLeadMark");
   }
 }
 
