@@ -118,6 +118,9 @@ struct CarEvent @0x9b1657f34caf3ad3 {
     slowingDownSpeed @107;
     slowingDownSpeedSound @108;
 
+    #autoResume
+    accBrakeHold @109;
+
     driverMonitorLowAccDEPRECATED @68;
     radarCanErrorDEPRECATED @15;
     radarCommIssueDEPRECATED @67;
