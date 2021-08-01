@@ -14,7 +14,7 @@ static void ui_draw_extras_limit_speed(UIState *s)
     {
         int w = 180;
         int h = 180;
-        int x = (s->viz_rect.x + (bdr_s*2)) + 400;
+        int x = (s->viz_rect.x + (bdr_s*2)) + 430;
         int y = 50;
         char str[32];
 
@@ -38,13 +38,13 @@ static void ui_draw_extras_limit_speed(UIState *s)
         nvgText(s->vg, x+w/2, y+h/2, str, NULL);
 
         nvgBeginPath(s->vg);
-        nvgRect(s->vg, x+w/2-100, y+h-40, 190, 80);
+        nvgRect(s->vg, x+w/2-100, y+h-30, 190, 80);
         NVGcolor squareColor = nvgRGBA(255, 0, 0, 200);
         nvgFillColor(s->vg, squareColor);
         nvgFill(s->vg);
         nvgFillColor(s->vg, nvgRGBA(255, 255, 255, 250));
 
-        nvgFontSize(s->vg, 74);
+        nvgFontSize(s->vg, 86);
         nvgFontFace(s->vg, "sans-bold");
         nvgTextAlign(s->vg, NVG_ALIGN_CENTER | NVG_ALIGN_MIDDLE);
 
