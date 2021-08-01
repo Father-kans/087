@@ -654,7 +654,7 @@ static void bb_ui_draw_basic_info(UIState *s)
                                                         live_params.getAngleOffsetAverageDeg());
 
     int x = bdr_s * 2;
-    int y = s->fb_h - 10;
+    int y = s->fb_h - 25;
     nvgBeginPath(s->vg);
     nvgRect(s->vg, x-40, y-27, 950, 50);
     NVGcolor squareColor = nvgRGBA(34, 139, 34, 200);
@@ -807,7 +807,7 @@ static void ui_draw_vision_speed(UIState *s) {
   const std::string speed_str = std::to_string((int)std::nearbyint(speed));
   nvgTextAlign(s->vg, NVG_ALIGN_CENTER | NVG_ALIGN_BASELINE);
   NVGcolor color = s->scene.car_state.getBrakeLights() ? nvgRGBA(255, 66, 66, 255) : COLOR_WHITE;
-  ui_draw_text(s, s->fb_w/2, 190, speed_str.c_str(), 80 * 2.5, color, "sans-bold");
+  ui_draw_text(s, s->fb_w/2, 190, speed_str.c_str(), 86 * 2.5, color, "sans-bold");
   ui_draw_text(s, s->fb_w/2, 270, s->scene.is_metric ? "km/h" : "mph", 24 * 2.5, COLOR_WHITE_ALPHA(200), "sans-regular");
 }
 
