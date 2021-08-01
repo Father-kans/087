@@ -14,6 +14,7 @@ from selfdrive.config import Conversions as CV
 from selfdrive.swaglog import cloudlog
 from selfdrive.boardd.boardd import can_list_to_can_capnp
 from selfdrive.car.car_helpers import get_car, get_startup_event, get_one_can
+from selfdrive.car.interfaces import DISENGAGE_ON_GAS
 from selfdrive.controls.lib.lane_planner import CAMERA_OFFSET, TRAJECTORY_SIZE
 from selfdrive.controls.lib.drive_helpers import update_v_cruise, initialize_v_cruise
 from selfdrive.controls.lib.drive_helpers import get_lag_adjusted_curvature
@@ -381,7 +382,7 @@ class Controls:
         model_speed = np.mean(v_curvature) * 0.93
 
         if model_speed < v_ego:
-          self.curve_speed_ms = float(max(model_speed, 32. * CV.KPH_TO_MS))
+          self.curve_speed_ms = float(max(model_speed, 42. * CV.KPH_TO_MS))
         else:
           self.curve_speed_ms = 255.
 
@@ -416,6 +417,10 @@ class Controls:
 # 2 lines for Slow on Curve
     curv_speed_ms = self.cal_curve_speed(self.sm, CS.vEgo, self.sm.frame)
     self.v_cruise_kph_limit = min(self.v_cruise_kph_limit, curv_speed_ms * CV.MS_TO_KPH)
+
+    if DISENGAGE_ON_GAS:
+      if not self.CS.out.gasPressed and (self.v_cruise_kph != CS.cruiseState.speed * CV.MS_TO_KPH):
+        self.v_cruise_kph_limit = min(self.v_cruise_kph_limit, CS.cruiseState.speed * CV.MS_TO_KPH)
 
     # decrease the soft disable timer at every step, as it's reset on
     # entrance in SOFT_DISABLING state
