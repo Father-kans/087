@@ -123,7 +123,7 @@ static int gm_tx_hook(CAN_FIFOMailBox_TypeDef *to_send) {
   int pedal_pressed = brake_pressed_prev && vehicle_moving;
   bool unsafe_allow_gas = unsafe_mode & UNSAFE_DISABLE_DISENGAGE_ON_GAS;
   if (!unsafe_allow_gas) {
-    pedal_pressed = pedal_pressed;
+    pedal_pressed = pedal_pressed || gas_pressed_prev;
   }
   bool current_controls_allowed = controls_allowed && !pedal_pressed;
 
