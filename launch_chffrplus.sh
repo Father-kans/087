@@ -31,11 +31,20 @@ if [ ! -f "/data/openpilot/installer/boot_finish" ]; then
   sed -i -e 's/\r$//' /data/openpilot/selfdrive/athena/*.py
   sed -i -e 's/\r$//' /data/openpilot/common/*.py, *.pyx, *.pxd
   sed -i -e 's/\r$//' /data/openpilot/panda/board/*.h, *.c
-  sed -i -e 's/\r$//' /data/openpilot/panda/python/*.h
-  sed -i -e 's/\r$//' /data/openpilot/panda/board/obj/.
   sed -i -e 's/\r$//' /data/openpilot/panda/board/boards/*.h
   sed -i -e 's/\r$//' /data/openpilot/panda/board/drivers/*.h
-  sed -i -e 's/\r$//' /data/openpilot/panda/board/safety/*.h
+  sed -i -e 's/\r$//' /data/openpilot/panda/board/obj/*.*
+  
+  sed -i -e 's/\r$//' /data/openpilot/panda/board/pedal/*.h, *.c
+  sed -i -e 's/\r$//' /data/openpilot/panda/board/safety/*.*
+  sed -i -e 's/\r$//' /data/openpilot/panda/board/stm32fx/*.*
+  sed -i -e 's/\r$//' /data/openpilot/panda/board/stm32h7/*.*
+
+  sed -i -e 's/\r$//' /data/openpilot/panda/board/tests/*.*
+  sed -i -e 's/\r$//' /data/openpilot/panda/certs/*.*
+  sed -i -e 's/\r$//' /data/openpilot/panda/crypto/*.*
+  sed -i -e 's/\r$//' /data/openpilot/panda/python/*.*
+
   chmod 700 /data/openpilot/t.sh
   chmod 744 /system/media/bootanimation.zip
   chmod 700 /data/openpilot/selfdrive/ui/qt/spinner
