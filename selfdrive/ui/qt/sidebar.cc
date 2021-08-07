@@ -138,7 +138,7 @@ void Sidebar::paintEvent(QPaintEvent *event) {
 
   // metrics
   configFont(p, "Open Sans", 35, "Regular");
-  drawMetric(p, "이온온도", QString("%1°C").arg(temp_val), temp_status, 355);
+  drawMetric(p, "온도", QString("%1°C").arg(temp_val), temp_status, 355);
   drawMetric(p, panda_str, "", panda_status, 518);
   drawMetric(p, connect_str, "", connect_status, 676);
 }
