@@ -161,11 +161,11 @@ class CarInterface(CarInterfaceBase):
     ret.longitudinalTuning.deadzoneV = [.0, .14]
 
     ret.longitudinalTuning.kpBP = [0., 15., 33.]
-    ret.longitudinalTuning.kpV = [1.9, 2.2, 1.5]
+    ret.longitudinalTuning.kpV = [1.9, 2.3, 2.0]
     ret.longitudinalTuning.kiBP = [0., 5., 12., 23., 33.]
     ret.longitudinalTuning.kiV = [.35, .31, .20, .17, .13]
     ret.longitudinalTuning.kfBP = [13.8, 33.]
-    ret.longitudinalTuning.kfV = [1.6, 0.9]
+    ret.longitudinalTuning.kfV = [1.6, 1.3]
     ret.brakeMaxBP = [0, 19.7, 33.]
     ret.brakeMaxV = [1.6, 1.3, 0.8]
     ret.stoppingBrakeRate = 0.1 # reach stopping target smoothly
@@ -266,10 +266,6 @@ class CarInterface(CarInterfaceBase):
       events.add(EventName.parkBrake)
     if ret.cruiseState.standstill:
       events.add(EventName.resumeRequired)
-#    if self.CS.pcm_acc_status == AccState.FAULTED:
-#      events.add(EventName.accFaulted)
-#    if ret.vEgo < self.CP.minSteerSpeed:
-#      events.add(car.CarEvent.EventName.belowSteerSpeed)
 
     # autohold on ui icon
     if self.CS.autoHoldActivated == True:

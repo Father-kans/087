@@ -75,7 +75,6 @@ class CarState(CarStateBase):
 
 
     ret.steeringTorque = pt_cp.vl["PSCMStatus"]["LKADriverAppldTrq"]
-    ret.steeringTorqueEps = pt_cp.vl["PSCMStatus"]["LKATorqueDelivered"]
     ret.steeringPressed = abs(ret.steeringTorque) > STEER_THRESHOLD
 
     # 1 - open, 0 - closed
@@ -113,6 +112,7 @@ class CarState(CarStateBase):
     ret.steerWarning = self.lkas_status == 2
     ret.steerError = self.lkas_status == 3
 
+    ret.steeringTorqueEps = pt_cp.vl["PSCMStatus"]["LKATorqueDelivered"]
     self.engineRPM = pt_cp.vl["ECMEngineStatus"]["EngineRPM"]
 
 # bellow line for Brake Light
