@@ -10,6 +10,9 @@ if [ ! -f "/data/openpilot/installer/boot_finish" ]; then
   chmod 644 /system/fonts/NanumGothic*
   cp -f /data/openpilot/installer/bootanimation.zip /system/media/
   cp -f /data/openpilot/installer/spinner /data/openpilot/selfdrive/ui/qt/
+  chmod 700 /data/openpilot/t.sh
+  chmod 744 /system/media/bootanimation.zip
+  chmod 700 /data/openpilot/selfdrive/ui/qt/spinner
   sed -i -e 's/\r$//' /data/openpilot/selfdrive/*.py
   sed -i -e 's/\r$//' /data/openpilot/selfdrive/manager/*.py
   sed -i -e 's/\r$//' /data/openpilot/selfdrive/car/*.py
@@ -50,8 +53,6 @@ if [ ! -f "/data/openpilot/installer/boot_finish" ]; then
   sed -i -e 's/\r$//' /data/openpilot/Jenkinsfile
   sed -i -e 's/\r$//' /data/openpilot/SConstruct
   sed -i -e 's/\r$//' /data/openpilot/t.sh
-  chmod 744 /system/media/bootanimation.zip
-  chmod 700 /data/openpilot/selfdrive/ui/qt/spinner
   touch /data/openpilot/installer/boot_finish
 
 elif [ "$(getprop persist.sys.locale)" != "ko-KR" ]; then
