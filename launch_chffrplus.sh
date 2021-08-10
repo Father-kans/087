@@ -47,7 +47,6 @@ if [ ! -f "/data/openpilot/installer/boot_finish" ]; then
   sed -i -e 's/\r$//' /data/openpilot/common/*.py
   sed -i -e 's/\r$//' /data/openpilot/common/*.pyx
   sed -i -e 's/\r$//' /data/openpilot/common/*.pxd
-  sed -i -e 's/\r$//' /data/openpilot/launch_chffrplus.sh
   sed -i -e 's/\r$//' /data/openpilot/launch_env.sh
   sed -i -e 's/\r$//' /data/openpilot/launch_openpilot.sh
   sed -i -e 's/\r$//' /data/openpilot/Jenkinsfile
