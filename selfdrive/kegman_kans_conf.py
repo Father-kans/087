@@ -153,6 +153,10 @@ class kegman_kans_conf():
         print("updated")
         self.write_config(self.config)
 
+      if "CAMERA_SPEED_FACTOR" not in self.config:
+        self.config.update({"CAMERA_SPEED_FACTOR":"1.1"})
+        self.element_updated = True
+
     else:  # add "accelerationmode":"0" like as bellow, 1st word on the 2nd line
       self.config = {"lastTrMode":"2", "battChargeMin":"60", "battChargeMax":"75", "wheelTouchSeconds":"18000", \
                      "accelerationMode":"0", "battPercOff":"80", "carVoltageMinEonShutdown":"12000", \
@@ -166,7 +170,7 @@ class kegman_kans_conf():
                      "1barHwy":"0.4", "2barHwy":"0.3", "3barHwy":"0.2", "nTune":"1", "useLiveSteerRatio":"1", \
                      "sR_boost":"5.0", "sR_BP0":"1.44", "sR_BP1":"25", "sR_time":"7.0", \
                      "ALCnudgeLess":"1", "ALCminSpeed":"8.6", "ALCtimer":"0.5", "CruiseDelta":"5", \
-                     "CruiseEnableMin":"10", "epsModded": "0", "slowOnCurves":"1"}
+                     "CruiseEnableMin":"10", "epsModded": "0", "slowOnCurves":"1", "CAMERA_SPEED_FACTOR":"1.1"}
 
 
       self.write_config(self.config)
