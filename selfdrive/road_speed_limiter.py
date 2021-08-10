@@ -277,13 +277,13 @@ class RoadSpeedLimiter:
         if MIN_LIMIT <= cam_limit_speed <= MAX_LIMIT and (self.slowing_down or cam_limit_speed_left_dist < v_ego * sec):
 
           if not self.slowing_down:
-            self.start_dist = cam_limit_speed_left_dist * 1.5
+            self.start_dist = cam_limit_speed_left_dist * 1.2
             self.slowing_down = True
             first_started = True
           else:
             first_started = False
 
-          base = self.start_dist / 1.2 * 0.65
+          base = self.start_dist / 1.2 * 0.6
 
           td = self.start_dist - base
           d = cam_limit_speed_left_dist - base
