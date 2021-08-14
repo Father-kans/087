@@ -64,6 +64,7 @@ class LateralPlanner():
     self.plan_yaw = np.zeros((TRAJECTORY_SIZE,))
     self.t_idxs = np.arange(TRAJECTORY_SIZE)
     self.y_pts = np.zeros(TRAJECTORY_SIZE)
+    self.steerRatio = 0.0
 
   def setup_mpc(self):
     self.libmpc = libmpc_py.libmpc
