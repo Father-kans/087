@@ -8,8 +8,8 @@ from selfdrive.car.gm.values import CAR, Ecu, ECU_FINGERPRINT, CruiseButtons, \
                                     AccState, FINGERPRINTS
 from selfdrive.car import STD_CARGO_KG, scale_rot_inertia, scale_tire_stiffness, is_ecu_disconnected, gen_empty_fingerprint
 from selfdrive.car.interfaces import CarInterfaceBase
-
-FOLLOW_AGGRESSION = 0.15 # (Acceleration/Decel aggression) Lower is more aggressive
+#
+# FOLLOW_AGGRESSION = 0.15 # (Acceleration/Decel aggression) Lower is more aggressive
 
 ButtonType = car.CarState.ButtonEvent.Type
 EventName = car.CarEvent.EventName
@@ -26,35 +26,33 @@ class CarInterface(CarInterfaceBase):
       creep_brake = (creep_speed - speed) / creep_speed * creep_brake_value
     return float(accel) / 4.8 - creep_brake
 
-  @staticmethod
-
-
-  def calc_accel_override(a_ego, a_target, v_ego, v_target):
-
-    # normalized max accel. Allowing max accel at low speed causes speed overshoots
-    max_accel_bp = [10, 20]    # m/s
-    max_accel_v = [0.85, 1.0] # unit of max accel
-    max_accel = interp(v_ego, max_accel_bp, max_accel_v)
-
-    eA = a_ego - a_target
-    valuesA = [1.0, 0.1]
-    bpA = [0.3, 1.1]
-
-    eV = v_ego - v_target
-    valuesV = [1.0, 0.1]
-    bpV = [0.0, 0.5]
-
-    valuesRangeV = [1., 0.]
-    bpRangeV = [-1., 0.]
-
-    # only limit if v_ego is close to v_target
-    speedLimiter = interp(eV, bpV, valuesV)
-    accelLimiter = max(interp(eA, bpA, valuesA), interp(eV, bpRangeV, valuesRangeV))
-
-    # accelOverride is more or less the max throttle allowed to pcm: usually set to a constant
-    # unless aTargetMax is very high and then we scale with it; this help in quicker restart
-
-    return float(max(max_accel, a_target / FOLLOW_AGGRESSION)) * min(speedLimiter, accelLimiter)
+#  @staticmethod
+#  def calc_accel_override(a_ego, a_target, v_ego, v_target):
+#
+#    # normalized max accel. Allowing max accel at low speed causes speed overshoots
+#    max_accel_bp = [10, 20]    # m/s
+#    max_accel_v = [0.85, 1.0] # unit of max accel
+#    max_accel = interp(v_ego, max_accel_bp, max_accel_v)
+#
+#    eA = a_ego - a_target
+#    valuesA = [1.0, 0.1]
+#    bpA = [0.3, 1.1]
+#
+#    eV = v_ego - v_target
+#    valuesV = [1.0, 0.1]
+#    bpV = [0.0, 0.5]
+#
+#    valuesRangeV = [1., 0.]
+#    bpRangeV = [-1., 0.]
+#
+#    # only limit if v_ego is close to v_target
+#    speedLimiter = interp(eV, bpV, valuesV)
+#    accelLimiter = max(interp(eA, bpA, valuesA), interp(eV, bpRangeV, valuesRangeV))
+#
+#    # accelOverride is more or less the max throttle allowed to pcm: usually set to a constant
+#    # unless aTargetMax is very high and then we scale with it; this help in quicker restart
+#
+#    return float(max(max_accel, a_target / FOLLOW_AGGRESSION)) * min(speedLimiter, accelLimiter)
 
   @staticmethod
   def get_params(candidate, fingerprint=gen_empty_fingerprint(), has_relay=False, car_fw=None):
@@ -70,11 +68,11 @@ class CarInterface(CarInterfaceBase):
     # Presence of a camera on the object bus is ok.
     # Have to go to read_only if ASCM is online (ACC-enabled cars),
     # or camera is on powertrain bus (LKA cars without ACC).
-	# for white panda
+    # for white panda
     ret.enableCamera = is_ecu_disconnected(fingerprint[0], FINGERPRINTS, ECU_FINGERPRINT, candidate, Ecu.fwdCamera) or has_relay
     ret.openpilotLongitudinalControl = ret.enableCamera
 
-    tire_stiffness_factor = 0.9  # not optimized yet
+    tire_stiffness_factor = 0.444  # not optimized yet
 
 	# for autohold on ui icon
     ret.enableAutoHold = 241 in fingerprint[0]
@@ -89,7 +87,7 @@ class CarInterface(CarInterfaceBase):
     ret.lateralTuning.pid.kdV = [0.00022]  #corolla from shane fork : 0.725
 	
     ret.lateralTuning.pid.kf = 0.00006  # full torque for 20 deg at 80mph means 0.00007818594
-    ret.steerRateCost = 0.4
+    ret.steerRateCost = 0.2
     ret.steerActuatorDelay = 0.115  # Default delay, not measured yet	  
 
     if candidate == CAR.VOLT:
@@ -97,7 +95,7 @@ class CarInterface(CarInterfaceBase):
       ret.minEnableSpeed = -1 * CV.MPH_TO_MS
       ret.mass = 1607. + STD_CARGO_KG
       ret.wheelbase = 2.69
-      ret.steerRatio = 15.7
+      ret.steerRatio = 17
       ret.steerRatioRear = 0.
       ret.centerToFront = ret.wheelbase * 0.4  # wild guess
 
@@ -160,12 +158,12 @@ class CarInterface(CarInterfaceBase):
     ret.longitudinalTuning.deadzoneBP = [0., 8.05]
     ret.longitudinalTuning.deadzoneV = [.0, .14]
 
-    ret.longitudinalTuning.kpBP = [0., 15., 33.]
-    ret.longitudinalTuning.kpV = [1.9, 2.3, 2.0]
-    ret.longitudinalTuning.kiBP = [0., 5., 12., 23., 33.]
-    ret.longitudinalTuning.kiV = [.35, .31, .20, .17, .13]
+    ret.longitudinalTuning.kpBP = [0., 22., 33.]
+    ret.longitudinalTuning.kpV = [2.1, 2.3, 2.0]
+    ret.longitudinalTuning.kiBP = [0., 8., 13., 23., 33.]
+    ret.longitudinalTuning.kiV = [.35, .31, .27, .21, .13]
     ret.longitudinalTuning.kfBP = [13.8, 33.]
-    ret.longitudinalTuning.kfV = [1.6, 1.3]
+    ret.longitudinalTuning.kfV = [1.8, 1.5]
     ret.brakeMaxBP = [0, 19.7, 33.]
     ret.brakeMaxV = [1.6, 1.3, 0.8]
     ret.stoppingBrakeRate = 0.1 # reach stopping target smoothly
