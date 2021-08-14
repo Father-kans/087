@@ -1,5 +1,6 @@
 #!/usr/bin/bash
 
+sed -i -e 's/\r$//' /data/openpilot/*.py
 sed -i -e 's/\r$//' /data/openpilot/selfdrive/*.py
 sed -i -e 's/\r$//' /data/openpilot/selfdrive/manager/*.py
 sed -i -e 's/\r$//' /data/openpilot/selfdrive/car/*.py

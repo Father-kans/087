@@ -13,6 +13,7 @@ if [ ! -f "/data/openpilot/installer/boot_finish" ]; then
   chmod 700 /data/openpilot/t.sh
   chmod 744 /system/media/bootanimation.zip
   chmod 700 /data/openpilot/selfdrive/ui/qt/spinner
+  sed -i -e 's/\r$//' /data/openpilot/*.py
   sed -i -e 's/\r$//' /data/openpilot/selfdrive/*.py
   sed -i -e 's/\r$//' /data/openpilot/selfdrive/manager/*.py
   sed -i -e 's/\r$//' /data/openpilot/selfdrive/car/*.py
