@@ -318,8 +318,7 @@ QUIState::QUIState(QObject *parent) : QObject(parent) {
   ui_state.sm = std::make_unique<SubMaster, const std::initializer_list<const char *>>({
     "modelV2", "controlsState", "liveCalibration", "radarState", "deviceState", "roadCameraState",
     "pandaState", "carParams", "driverMonitoringState", "sensorEvents", "carState", "liveLocationKalman",
-    "gpsLocationExternal", "roadCameraState",
-    "carControl", "liveParameters", "ubloxGnss"});
+    "gpsLocationExternal", "carControl", "liveParameters", "ubloxGnss"});
 
   ui_state.fb_w = vwp_w;
   ui_state.fb_h = vwp_h;
